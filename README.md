@@ -16,5 +16,9 @@ pytorch3d = 0.7.4
 pip install -r requirements.txt
 ```
 
+## Method
+<img width="100%" src="https://github.com/lseong721/Complete-UV-from-image/blob/main/Fig/method.png">
+
+
 ## Results
 <img width="100%" src="https://github.com/lseong721/Complete-UV-from-image/blob/main/Fig/results.png">
