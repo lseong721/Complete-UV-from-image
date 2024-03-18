@@ -220,8 +220,6 @@ def compute_uv_texture(args):
     uv_vn1 = uv_vn1.reshape(-1, 3)
     uv_vn2 = uv_vn2.reshape(-1, 3)
 
-    z_buf_face_idx = pix_to_face > -1
-
     uv_v_bary = uv_v0 * uv_b[:, [0]] + uv_v1 * uv_b[:, [1]] + uv_v2 * uv_b[:, [2]]
     uv_v_bary = torch.tensor(uv_v_bary, device=args.device).float() # uv_size x 3
 
@@ -289,7 +287,7 @@ if __name__ == "__main__":
     parser.add_argument('--normaldir', type=str, default='../../DB/BYroad/240115/sending/frame0005', help='normal image dir')
     parser.add_argument('--cablidir', type=str, default='../../DB/BYroad/240115/sending/cams', help='calib file dir')
     parser.add_argument('--uv_size', type=int, default=256, help='calib file dir')
-    parser.add_argument('--z_threshold', type=int, default=1, help='threshold for z buffer')
+    parser.add_argument('--z_threshold', type=float, default=0.5, help='threshold for z buffer')
     args = parser.parse_args()
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
