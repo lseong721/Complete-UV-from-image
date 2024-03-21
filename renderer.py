@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import ffmpeg
 import cv2
-from utils import *
 
 import torch
 from pytorch3d.renderer import (

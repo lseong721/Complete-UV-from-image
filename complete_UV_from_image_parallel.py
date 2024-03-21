@@ -336,7 +336,7 @@ if __name__ == "__main__":
     parser.add_argument('--filename', type=str, default='../../DB/BYroad/240318_body_atlas/output.obj', help='obj name')
     parser.add_argument('--normaldir', type=str, default='../../DB/BYroad/240318_body_atlas/parameterized_data/normal_output', help='normal image dir')
     parser.add_argument('--cablidir', type=str, default='../../DB/BYroad/240318_body_atlas/parameterized_data/cams', help='calib file dir')
-    parser.add_argument('--uv_size', type=int, default=256, help='calib file dir')
+    parser.add_argument('--uv_size', type=int, default=512, help='calib file dir')
     parser.add_argument('--z_threshold', type=float, default=10, help='threshold for z buffer')
     args = parser.parse_args()
 
