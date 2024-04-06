@@ -132,7 +132,13 @@ def compute_uv_attributes(loop_idx, uv_grid, uv_t0, uv_t1, uv_t2, vp, fv, vn, uv
         
         f_inside = np.where(is_inside == True)[0]
         if len(f_inside) > 0:
-            f_inside = f_inside[0]
+            b0_from_center = (b0[f_inside] - 1/3)**2
+            b1_from_center = (b1[f_inside] - 1/3)**2
+            b2_from_center = (b2[f_inside] - 1/3)**2
+
+            f_closest = np.argmin(np.sqrt(b0_from_center + b1_from_center + b2_from_center))
+            f_inside = f_inside[f_closest]
+            # f_inside = f_inside[0]
 
             uv_f[uv_idx] = f_inside # face index per uv pixel
             uv_fv0[uv_idx] = fv[f_inside, 0]
@@ -227,6 +233,7 @@ def save_uv_info(args, data_list):
 
         np.savez(uv_path, uv_vn_bary=uv_vn_bary, uv_v_bary=uv_v_bary)
         cv2.imwrite(uv_vn_path, (uv_vn_bary.reshape(args.uv_size, args.uv_size, 3)+1)*127.5)
+        cv2.imwrite(uv_vn_path, cv2.cvtColor((uv_vn_bary.reshape(args.uv_size, args.uv_size, 3)+1)*127.5, cv2.COLOR_RGB2GRAY))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -234,8 +241,10 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default='cuda', help='device')
     parser.add_argument('--uv_size', type=int, default=256, help='calib file dir')
     parser.add_argument('--b_threshold', type=float, default=-0.8, help='threshold for barycentric')
-    parser.add_argument('--datadir', type=str, default='../../DB/BYroad/240320_registration/raw', help='data dir')
-    parser.add_argument('--save_datadir', type=str, default='../../DB/BYroad/240320_registration/uv_map', help='save dir')
+    # parser.add_argument('--datadir', type=str, default='../../DB/BYroad/240320_registration/raw', help='data dir')
+    # parser.add_argument('--save_datadir', type=str, default='../../DB/BYroad/240320_registration/uv_map', help='save dir')
+    parser.add_argument('--datadir', type=str, default='../../DB/BYroad/240405_Light/20240403_LSM_light_static_1', help='data dir')
+    parser.add_argument('--save_datadir', type=str, default='../../DB/BYroad/240405_Light/20240403_LSM_light_static_1/uv_map', help='save dir')
     args = parser.parse_args()
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"

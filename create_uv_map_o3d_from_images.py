@@ -17,11 +17,14 @@ import xatlas
 import pyfqmr
 import fast_simplification
 import open3d as o3d
+from scipy.signal import convolve2d
+from scipy import ndimage
 
 def read_imageset(filedir, filenames, resize_ratio=0.25, read_rgb=True):
     pix_normal = []
     for i in range(len(filenames)):
-        data = cv2.imread('%s/M_Normal_CAM%02d.png' % (filedir, i+1))
+        # data = cv2.imread('%s/M_Normal_CAM%02d.png' % (filedir, i+1))
+        data = cv2.imread('%s/M_Normal_CAM%02d.png' % (filedir, i))
         if read_rgb:
             data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
         H, W = int(data.shape[0] * resize_ratio), int(data.shape[1] * resize_ratio)
@@ -132,7 +135,13 @@ def compute_uv_attributes(loop_idx, uv_grid, uv_t0, uv_t1, uv_t2, vp, fv, vn, uv
         
         f_inside = np.where(is_inside == True)[0]
         if len(f_inside) > 0:
-            f_inside = f_inside[0]
+            b0_from_center = (b0[f_inside] - 1/3)**2
+            b1_from_center = (b1[f_inside] - 1/3)**2
+            b2_from_center = (b2[f_inside] - 1/3)**2
+
+            f_closest = np.argmin(np.sqrt(b0_from_center + b1_from_center + b2_from_center))
+            f_inside = f_inside[f_closest]
+            # f_inside = f_inside[0]
 
             uv_f[uv_idx] = f_inside # face index per uv pixel
             uv_fv0[uv_idx] = fv[f_inside, 0]
@@ -326,8 +335,20 @@ def compute_uv_texture(args, data_list):
         uv_imgs = np.stack(uv_imgs, axis=0)
         uv_imgs = np.ma.masked_equal(uv_imgs, 0)
         uv_imgs = np.ma.median(uv_imgs, axis=0).filled(0)  # .filled(0) fills masked values with 0 in the output
+        uv_imgs = uv_imgs.reshape(args.uv_size, args.uv_size, 3)
 
-        cv2.imwrite(uv_vn_path, (uv_imgs.reshape(args.uv_size, args.uv_size, 3)+1)*127.5)
+        cv2.imwrite(uv_vn_path.replace('.png', '0.png'), (uv_imgs+1)*127.5)
+
+        kernel_size = 3
+        kernel = np.ones([kernel_size, kernel_size]) / kernel_size**2
+        
+        uv_zeros = uv_imgs == 0
+        for i in range(10):
+            # -1 indicates that the depth of the output image is the same as the input
+            uv_imgs_filtered = cv2.filter2D(uv_imgs, -1, kernel)
+            uv_imgs[uv_zeros] = uv_imgs_filtered[uv_zeros]
+        
+        cv2.imwrite(uv_vn_path, (uv_imgs+1)*127.5)
 
 
 if __name__ == "__main__":
@@ -335,18 +356,20 @@ if __name__ == "__main__":
     parser.add_argument('--gpu', type=str, default='2', help='gpu id')
     parser.add_argument('--device', type=str, default='cuda', help='device')
     parser.add_argument('--uv_size', type=int, default=256, help='calib file dir')
-    parser.add_argument('--b_threshold', type=float, default=-0.8, help='threshold for barycentric')
+    parser.add_argument('--b_threshold', type=float, default=-0.5, help='threshold for barycentric')
     # parser.add_argument('--datadir', type=str, default='../../DB/BYroad/240320_registration/raw', help='data dir')
-    parser.add_argument('--datadir', type=str, default='../../DB/BYroad/240318_body_atlas', help='data dir')
     # parser.add_argument('--save_datadir', type=str, default='../../DB/BYroad/240320_registration/uv_map', help='save dir')
-    parser.add_argument('--save_datadir', type=str, default='../../DB/BYroad/240318_body_atlas/uv_map', help='save dir')
+    # parser.add_argument('--datadir', type=str, default='../../DB/BYroad/240318_body_atlas', help='data dir')
+    # parser.add_argument('--save_datadir', type=str, default='../../DB/BYroad/240318_body_atlas/uv_map', help='save dir')
+    parser.add_argument('--datadir', type=str, default='../../DB/BYroad/240405_Light/20240403_LSM_light_static_1', help='data dir')
+    parser.add_argument('--save_datadir', type=str, default='../../DB/BYroad/240405_Light/20240403_LSM_light_static_1/uv_map2', help='save dir')
 
     parser.add_argument('--ratio', type=float, default=0.5, help='resize ratio')
     parser.add_argument('--n_iter', type=int, default=20, help='number of iteration')
     parser.add_argument('--interval', type=int, default=1, help='view interval')
-    parser.add_argument('--normaldir', type=str, default='../../DB/BYroad/240318_body_atlas/parameterized_data/normal_output', help='normal image dir')
-    parser.add_argument('--cablidir', type=str, default='../../DB/BYroad/240318_body_atlas/parameterized_data/cams', help='calib file dir')
-    parser.add_argument('--z_threshold', type=float, default=10, help='threshold for z buffer')
+    parser.add_argument('--normaldir', type=str, default='../../DB/BYroad/240405_Light/20240403_LSM_light_static_1/undistort', help='normal image dir')
+    parser.add_argument('--cablidir', type=str, default='../../DB/BYroad/240405_Light/20240403_LSM_light_static_1/cams', help='calib file dir')
+    parser.add_argument('--z_threshold', type=float, default=50, help='threshold for z buffer')
 
     args = parser.parse_args()
 
@@ -355,16 +378,15 @@ if __name__ == "__main__":
 
     tt = time.time()
 
-    data_list = sorted(glob(os.path.join(args.datadir, '*2.obj')))
+    data_list = sorted(glob(os.path.join(args.datadir, '*.obj')))
 
     # registered data --> uv atlas data
     print('Creating UV atlas...')
     create_uv_atlas(args, data_list)
 
     # # uv atlas data --> uv mapping
-    # print('Computing UV mapping...')
-    data_list = sorted(glob(os.path.join(args.save_datadir, '*2.obj')))
-    # print(data_list)
+    print('Computing UV mapping...')
+    data_list = sorted(glob(os.path.join(args.save_datadir, '*.obj')))
     save_uv_info(args, data_list)
 
     compute_uv_texture(args, data_list)
