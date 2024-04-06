@@ -246,7 +246,7 @@ def compute_uv_texture(args, data_list):
 
         # Read calib and normal data
         R, T, K, names = read_calib(args.cablidir, args.ratio)
-        imgs = read_imageset(args.normaldir, names, args.ratio, read_rgb=False)
+        imgs = read_imageset(args.normaldir, names, args.ratio, read_rgb=True)
         imgs = torch.tensor(np.array(imgs), device=args.device).float()
         imgs = imgs / 127.5 - 1
         img_size = [imgs.shape[1], imgs.shape[2]]
@@ -336,8 +336,6 @@ def compute_uv_texture(args, data_list):
         uv_imgs = np.ma.masked_equal(uv_imgs, 0)
         uv_imgs = np.ma.median(uv_imgs, axis=0).filled(0)  # .filled(0) fills masked values with 0 in the output
         uv_imgs = uv_imgs.reshape(args.uv_size, args.uv_size, 3)
-
-        cv2.imwrite(uv_vn_path.replace('.png', '0.png'), (uv_imgs+1)*127.5)
 
         kernel_size = 3
         kernel = np.ones([kernel_size, kernel_size]) / kernel_size**2

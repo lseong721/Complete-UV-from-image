@@ -232,8 +232,19 @@ def save_uv_info(args, data_list):
         uv_vn_bary = uv_vn_bary.reshape(args.uv_size, args.uv_size, 3).detach().cpu().numpy()
 
         np.savez(uv_path, uv_vn_bary=uv_vn_bary, uv_v_bary=uv_v_bary)
-        cv2.imwrite(uv_vn_path, (uv_vn_bary.reshape(args.uv_size, args.uv_size, 3)+1)*127.5)
-        cv2.imwrite(uv_vn_path, cv2.cvtColor((uv_vn_bary.reshape(args.uv_size, args.uv_size, 3)+1)*127.5, cv2.COLOR_RGB2GRAY))
+        # cv2.imwrite(uv_vn_path, (uv_vn_bary.reshape(args.uv_size, args.uv_size, 3)+1)*127.5)
+
+        uv_imgs = uv_vn_bary.reshape(args.uv_size, args.uv_size, 3)
+        kernel_size = 3
+        kernel = np.ones([kernel_size, kernel_size]) / kernel_size**2
+        
+        uv_zeros = uv_imgs == 0
+        for i in range(10):
+            # -1 indicates that the depth of the output image is the same as the input
+            uv_imgs_filtered = cv2.filter2D(uv_imgs, -1, kernel)
+            uv_imgs[uv_zeros] = uv_imgs_filtered[uv_zeros]
+        
+        cv2.imwrite(uv_vn_path, (uv_imgs+1)*127.5)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
